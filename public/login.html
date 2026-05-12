@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyL10 — Sign In</title>
+<style>
+:root {
+  --accent: #c0392b; --accent-hover: #962d22; --accent-light: #fde8e7;
+  --bg: #f4f4f4; --white: #ffffff; --border: #e0e0e0;
+  --text: #2c2c2c; --text-sec: #717171;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg); height: 100vh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background-image: linear-gradient(135deg, #f5f5f5 0%, #ebebeb 100%);
+}
+.brand { font-size: 36px; font-weight: 900; color: var(--accent); letter-spacing: 2px; margin-bottom: 6px; }
+.tagline { font-size: 13px; color: var(--text-sec); margin-bottom: 30px; }
+.card {
+  background: var(--white); border-radius: 12px;
+  box-shadow: 0 6px 32px rgba(0,0,0,.13); padding: 36px 34px; width: 360px;
+}
+.field { margin-bottom: 16px; }
+.field label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--text-sec); margin-bottom: 5px; }
+.field input {
+  width: 100%; border: 1.5px solid var(--border); border-radius: 6px;
+  padding: 10px 12px; font-size: 14px; font-family: inherit; outline: none;
+  transition: border-color .15s, box-shadow .15s; color: var(--text);
+}
+.field input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
+.btn-login {
+  width: 100%; background: var(--accent); color: #fff; border: none;
+  border-radius: 6px; padding: 12px; font-size: 15px; font-weight: 700;
+  font-family: inherit; cursor: pointer; transition: background .15s; margin-top: 6px;
+}
+.btn-login:hover { background: var(--accent-hover); }
+.btn-login:active { transform: scale(.98); }
+.err {
+  background: var(--accent-light); color: var(--accent); border-radius: 6px;
+  padding: 10px 12px; font-size: 13px; margin-bottom: 16px;
+  border-left: 3px solid var(--accent); display: none;
+}
+.err.show { display: block; }
+.footer-note { margin-top: 20px; font-size: 11px; color: var(--text-sec); text-align: center; }
+</style>
+</head>
+<body>
+<div class="brand">MyL10</div>
+<div class="tagline">Task management for your team</div>
+<div class="card">
+  <div class="err" id="err"></div>
+  <div class="field">
+    <label>Username</label>
+    <input id="uname" type="text" placeholder="Enter your username" autocomplete="username" autofocus>
+  </div>
+  <div class="field">
+    <label>Password</label>
+    <input id="upass" type="password" placeholder="Enter your password" autocomplete="current-password">
+  </div>
+  <button class="btn-login" id="loginBtn" onclick="login()">Sign In</button>
+</div>
+<div class="footer-note">Grand Majesty Pharmaceutical, Inc.</div>
+
+<script>
+// Redirect if already logged in
+(function(){
+  const t = localStorage.getItem('myl10_token');
+  const u = JSON.parse(localStorage.getItem('myl10_user') || 'null');
+  if (t && u) window.location.replace(u.role === 'admin' ? '/admin' : '/app');
+})();
+
+document.addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+
+async function login() {
+  const btn = document.getElementById('loginBtn');
+  const errEl = document.getElementById('err');
+  const username = document.getElementById('uname').value.trim();
+  const password = document.getElementById('upass').value;
+  errEl.classList.remove('show');
+  if (!username || !password) {
+    errEl.textContent = 'Please enter your username and password.';
+    errEl.classList.add('show');
+    return;
+  }
+  btn.textContent = 'Signing in…';
+  btn.disabled = true;
+  try {
+    const res = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      errEl.textContent = data.error || 'Invalid credentials.';
+      errEl.classList.add('show');
+      btn.textContent = 'Sign In';
+      btn.disabled = false;
+      return;
+    }
+    localStorage.setItem('myl10_token', data.token);
+    localStorage.setItem('myl10_user', JSON.stringify(data.user));
+    window.location.replace(data.user.role === 'admin' ? '/admin' : '/app');
+  } catch {
+    errEl.textContent = 'Connection error. Please try again.';
+    errEl.classList.add('show');
+    btn.textContent = 'Sign In';
+    btn.disabled = false;
+  }
+}
+</script>
+</body>
+</html>
